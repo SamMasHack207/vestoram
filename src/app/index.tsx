@@ -8,6 +8,7 @@ import {
   SafeAreaView,
   Pressable,
   Alert,
+  Platform,
 } from "react-native";
 import { WebView, WebViewNavigation } from "react-native-webview";
 import NetInfo from "@react-native-community/netinfo";
@@ -15,6 +16,11 @@ import * as Linking from "expo-linking";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { getExpoPushToken } from "../services/pushNotifications";
+import {
+  checkForUpdate,
+  downloadAndInstallApk,
+  type UpdateInfo,
+} from "../services/updater";
 
 const SITE_URL = "https://boutique-ci-demo.onrender.com";
 const MAIN_COLOR = "#E60023";
@@ -51,6 +57,9 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [offline, setOffline] = useState(false);
   const [canGoBack, setCanGoBack] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadPct, setDownloadPct] = useState(0);
 
   const notifyWebApp = (message: Record<string, string>) => {
     const serializedMessage = JSON.stringify(message).replace(/</g, "\\u003c");
@@ -71,6 +80,14 @@ export default function Home() {
       notifyWebApp({ type: "EXPO_PUSH_ERROR", message });
     }
   };
+
+  // Vérification mise à jour GitHub
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    checkForUpdate().then((info) => {
+      if (info) setUpdateInfo(info);
+    });
+  }, []);
 
   // Gestion de la connexion Internet
   useEffect(() => {
@@ -123,6 +140,19 @@ export default function Home() {
     return true;
   };
 
+  const handleUpdate = async () => {
+    if (!updateInfo) return;
+    try {
+      setDownloading(true);
+      setDownloadPct(0);
+      await downloadAndInstallApk(updateInfo.downloadUrl, setDownloadPct);
+    } catch {
+      Alert.alert("Erreur", "Le téléchargement a échoué. Réessayez.");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   // Écran d'erreur hors-ligne (design du site)
   if (offline) {
     return (
@@ -158,6 +188,35 @@ export default function Home() {
       {loading && (
         <View style={styles.loading}>
           <ActivityIndicator size="large" color="#FFFFFF" />
+        </View>
+      )}
+
+      {updateInfo && (
+        <View style={styles.updateBanner}>
+          <View style={styles.updateBannerContent}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.updateTitle}>
+                Mise à jour v{updateInfo.version}
+              </Text>
+              <Text style={styles.updateSubtitle}>
+                {downloading
+                  ? `${downloadPct}%`
+                  : "Nouvelle version disponible"}
+              </Text>
+            </View>
+            <Pressable
+              style={[
+                styles.updateButton,
+                downloading && styles.updateButtonDisabled,
+              ]}
+              onPress={handleUpdate}
+              disabled={downloading}
+            >
+              <Text style={styles.updateButtonText}>
+                {downloading ? "..." : "Installer"}
+              </Text>
+            </Pressable>
+          </View>
         </View>
       )}
 
@@ -309,6 +368,46 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: "#fff",
     fontSize: 15,
+    fontWeight: "700",
+  },
+  updateBanner: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 20,
+    backgroundColor: "#1E4D3B",
+    paddingTop: Platform.OS === "android" ? 36 : 52,
+    paddingBottom: 12,
+    paddingHorizontal: 16,
+  },
+  updateBannerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  updateTitle: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  updateSubtitle: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 12,
+    marginTop: 2,
+  },
+  updateButton: {
+    backgroundColor: "#E8A838",
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    borderRadius: 999,
+  },
+  updateButtonDisabled: {
+    opacity: 0.6,
+  },
+  updateButtonText: {
+    color: "#1A1A18",
+    fontSize: 13,
     fontWeight: "700",
   },
 });

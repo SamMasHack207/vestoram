@@ -1,23 +1,43 @@
 import Constants from "expo-constants";
 import * as Device from "expo-device";
-import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
-if (Platform.OS !== "web") {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowBanner: true,
-      shouldShowList: true,
-      shouldPlaySound: true,
-      shouldSetBadge: false,
-    }),
-  });
+let Notifications: typeof import("expo-notifications") | null = null;
+
+try {
+  const N = require("expo-notifications") as typeof import("expo-notifications");
+  Notifications = N;
+  if (Platform.OS !== "web") {
+    N.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+      }),
+    });
+  }
+} catch {
+  // Expo Go (SDK 53+) — push notifications not supported
+}
+
+function isExpoGo(): boolean {
+  const env = Constants.executionEnvironment;
+  return env === "storeClient";
 }
 
 /** Demande l'autorisation native et retourne le jeton Expo de cet appareil. */
 export async function getExpoPushToken(): Promise<string> {
   if (Platform.OS === "web") {
     throw new Error("Les notifications natives ne sont disponibles que dans l'application.");
+  }
+
+  if (isExpoGo()) {
+    throw new Error("Les notifications push ne sont pas disponibles dans Expo Go. Utilisez un build de développement.");
+  }
+
+  if (!Notifications) {
+    throw new Error("Le module expo-notifications n'est pas disponible.");
   }
 
   if (!Device.isDevice) {
