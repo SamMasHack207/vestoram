@@ -2,7 +2,7 @@
   "expo": {
     "name": "Vestoram",
     "slug": "shop-app",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "boutiqueci",
@@ -24,9 +24,12 @@
       "permissions": [
         "INTERNET",
         "ACCESS_NETWORK_STATE",
-        "REQUEST_INSTALL_PACKAGES"
+        "REQUEST_INSTALL_PACKAGES",
+        "POST_NOTIFICATIONS",
+        "VIBRATE"
       ],
-      "allowBackup": false
+      "allowBackup": false,
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "output": "static",
@@ -44,7 +47,8 @@
         {
           "backgroundColor": "#E60023",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 180,
+          "resizeMode": "contain"
         }
       ],
       [
@@ -67,6 +71,7 @@
     },
     "extra": {
       "router": {},
+      "siteUrl": "https://boutique-ci-demo.onrender.com",
       "eas": {
         "projectId": "e384ffb7-682f-43fa-b975-2f76f8295a58"
       }
