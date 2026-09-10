@@ -43,16 +43,24 @@ jobs:
         run: npx expo prebuild --platform android --clean --no-install
 
       - name: Decode keystore
-        if: secrets.ANDROID_KEYSTORE_BASE64 != ''
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "Pas de keystore secret → build debug"
+            exit 0
+          fi
           echo "$KEYSTORE_BASE64" | base64 -d > android/app/vestoram.keystore
           ls -lh android/app/vestoram.keystore
 
       - name: Inject signing config
-        if: secrets.ANDROID_KEYSTORE_BASE64 != ''
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "Pas de keystore → skip signing"
+            exit 0
+          fi
           cat >> android/gradle.properties <<EOF
           MYAPP_RELEASE_STORE_FILE=vestoram.keystore
           MYAPP_RELEASE_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}
