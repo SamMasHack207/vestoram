@@ -69,9 +69,16 @@ jobs:
 
       - name: Build APK (Gradle)
         working-directory: android
+        env:
+          GRADLE_OPTS: "-Xmx4g -Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1024m -XX:+HeapDumpOnOutOfMemoryError"
+          _JAVA_OPTIONS: "-Xmx4g"
         run: |
           chmod +x ./gradlew
-          ./gradlew assembleRelease --stacktrace
+          # Boost Gradle daemon memory (fix Metaspace OOM sur reanimated)
+          echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1024m -XX:+HeapDumpOnOutOfMemoryError" >> gradle.properties
+          echo "org.gradle.parallel=false" >> gradle.properties
+          cat gradle.properties
+          ./gradlew assembleRelease --stacktrace --no-daemon
 
       - name: Rename APK
         run: |
